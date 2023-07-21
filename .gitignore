@@ -1,0 +1,15 @@
+.venv
+.git/
+.pytest_cache/
+.webpack_cache/
+__pycache__/
+assets/node_modules/
+public/
+.mypy_cache
+
+.coverage
+.env*
+!.env.example
+celerybeat-schedule
+docker-compose.override.yml
+logfile.log
