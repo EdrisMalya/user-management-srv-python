@@ -1,0 +1,6 @@
+﻿id,name,permission_group_id,insertedBy,insertedDate
+2,User Management,null,1,2023-02-04 14:22:40.3441500
+6,Users,2,1,2023-02-04 14:22:40.3441500
+7,Roles,2,1,2023-02-04 14:22:40.3441500
+8,Permissions,2,1,2023-02-04 14:22:40.3441500
+15,Test,15,1,2023-02-04 15:50:29.5315640

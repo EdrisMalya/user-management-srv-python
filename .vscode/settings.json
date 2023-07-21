@@ -1,0 +1,31 @@
+{
+  "files.autoSave": "onWindowChange",
+  "editor.cursorStyle": "block",
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    /** Pyformat use it's own code action to */
+    "source.organizeImports": true
+  },
+  "python.formatting.provider": "black",
+  "pyformat.formatProvider": "autopep8",
+  "pyformat.autopep8Args": ["--max-line-length 120"],
+  "pyformat.blackArgs": ["--line-length 120"],
+  "pyformat.isortArgs": ["-w 120", "-m 2"],
+  "pyformat.enableImportOrganization": true,
+  "[python]": {
+    "editor.defaultFormatter": "ms-python.black-formatter",
+    "editor.formatOnSave": true
+  },
+  "cSpell.words": [
+    "fastapi",
+    "joinedload",
+    "jsonable",
+    "lazyload",
+    "ORJSON",
+    "pydantic",
+    "sessionmaker",
+    "Signle",
+    "sqlalchemy",
+    "subqueryload"
+  ]
+}

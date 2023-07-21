@@ -1,0 +1,17 @@
+﻿id,name,description,group_id,insertedBy,insertedDate
+12,usermanagement.access,Access to User Management,2,1,2023-02-04 14:22:40.3346290
+18,user.access,Access User,6,1,2023-02-04 14:22:40.3346290
+19,user.add,Insert User,6,1,2023-02-04 14:22:40.3346290
+20,user.view,View Users,6,1,2023-02-04 14:22:40.3346290
+21,user.edit,Edit User,6,1,2023-02-04 14:22:40.3346290
+22,user.delete,Delete User,6,1,2023-02-04 14:22:40.3346290
+24,roles.access,Access Roles,7,1,2023-02-04 14:22:40.3346290
+25,roles.view,View Roles,7,1,2023-02-04 14:22:40.3346290
+26,roles.add,Insert Roles,7,1,2023-02-04 14:22:40.3346290
+27,roles.edit,Edit Roles,7,1,2023-02-04 14:22:40.3346290
+28,roles.delete,Delete Roles,7,1,2023-02-04 14:22:40.3346290
+29,permission.access,Access Permissions,8,1,2023-02-04 14:22:40.3346290
+30,permission.view,View Permission,8,1,2023-02-04 14:22:40.3346290
+31,permission.add,Insert Permission,8,1,2023-02-04 14:22:40.3346290
+32,permission.edit,Edit Permission,8,1,2023-02-04 14:22:40.3346290
+33,permission.delete,Delete Permission,8,1,2023-02-04 14:22:40.3346290
