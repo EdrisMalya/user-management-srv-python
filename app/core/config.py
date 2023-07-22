@@ -57,10 +57,10 @@ class Settings(BaseSettings):
     MSSQL_DRIVER = "ODBC Driver 17 for SQL Server"
     MSSQL_DRIVER_PRODUCTION = "sql-server-data-source"
 
-    MSSQL_TEST_SERVER = ""
-    MSSQL_TEST_DATABASE = ""
-    MSSQL_TEST_USER = ""
-    MSSQL_TEST_PASS = ""
+    MSSQL_TEST_SERVER = "10.0.0.30"
+    MSSQL_TEST_DATABASE = "CWEBUSERM"
+    MSSQL_TEST_USER = "sa"
+    MSSQL_TEST_PASS = "Pass@786"
     
     MSSQL_LIVE_SERVER = ""
     MSSQL_LIVE_DATABASE = ""
@@ -68,8 +68,8 @@ class Settings(BaseSettings):
     MSSQL_LIVE_PASS = ""
 
 
-    FIRST_SUPERUSER: EmailStr = ""
-    FIRST_SUPERUSER_PW: str = ""
+    FIRST_SUPERUSER: EmailStr = "abas.rafiq@dab.gov.af"
+    FIRST_SUPERUSER_PW: str = "thisistest"
     USER_CHANGED_PASSWORD_DATE: str = "2022/07/20 04:00:00"
     USERS_OPEN_REGISTRATION: bool = False
 

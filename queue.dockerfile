@@ -49,7 +49,7 @@ RUN ACCEPT_EULA=Y apt-get install -y msodbcsql18
 RUN apt-get install -y unixodbc-dev
 
 # Install Poetry
-RUN curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | POETRY_HOME=/opt/poetry python && \
+RUN curl -sSL https://install.python-poetry.org | POETRY_HOME=/opt/poetry python3 && \
     cd /usr/local/bin && \
     ln -s /opt/poetry/bin/poetry && \
     poetry config virtualenvs.create false
@@ -60,7 +60,7 @@ COPY ./pyproject.toml ./poetry.lock* /app/
 # Project initialization:
 # hadolint ignore=SC2046
 RUN echo "$FASTAPI_ENV" && poetry version 
-    # Install deps:
+# Install deps:
 RUN poetry run pip install -U pip 
 RUN poetry install $(if [ "$FASTAPI_ENV" = 'production' ]; then echo '--no-dev'; fi) --no-interaction --no-ansi \
     # Cleaning poetry installation's cache for production:

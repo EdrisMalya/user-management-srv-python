@@ -9,14 +9,3 @@ services:
       - "8001:8001"
     volumes:
       - .:/app
-
-  dab_user_management_queue:
-    build:
-      context: ./
-      dockerfile: queue.dockerfile
-    image: queue_user_management:v0.1.0-alpha
-    container_name: dab_user_management_queue
-    volumes:
-      - .:/app
-    depends_on:
-      - dab_user_management_svc

@@ -15,13 +15,13 @@ ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 ENV ENVIRONMENT dev
 ENV TESTING 0
-ENV FASTAPI_ENV='production'
+ENV FASTAPI_ENV='development'
 ENV MSSQL_DRIVER='ODBC Driver 18 for SQL Server'
 ENV MSSQL_DRIVER_PRODUCTION='sql-server-data-source'
-ENV MSSQL_TEST_SERVER=''
-ENV MSSQL_TEST_DATABASE=''
-ENV MSSQL_TEST_USER=''
-ENV MSSQL_TEST_PASS=''
+ENV MSSQL_TEST_SERVER='10.0.0.94'
+ENV MSSQL_TEST_DATABASE='pcr_user'
+ENV MSSQL_TEST_USER='sa'
+ENV MSSQL_TEST_PASS='Edris@123'
 ENV POETRY_VERSION='1.1.13'
 
 # install FreeTDS and dependencies
@@ -49,7 +49,7 @@ RUN ACCEPT_EULA=Y apt-get install -y msodbcsql18
 RUN apt-get install -y unixodbc-dev
 
 # Install Poetry
-RUN curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | POETRY_HOME=/opt/poetry python && \
+RUN curl -sSL https://install.python-poetry.org | POETRY_HOME=/opt/poetry python3 && \
     cd /usr/local/bin && \
     ln -s /opt/poetry/bin/poetry && \
     poetry config virtualenvs.create false
@@ -59,8 +59,8 @@ COPY ./pyproject.toml ./poetry.lock* /app/
 
 # Project initialization:
 # hadolint ignore=SC2046
-RUN echo "$FASTAPI_ENV" && poetry version 
-    # Install deps:
+RUN echo "$FASTAPI_ENV" && poetry version
+# Install deps:
 RUN poetry run pip install -U pip 
 RUN poetry install $(if [ "$FASTAPI_ENV" = 'production' ]; then echo '--no-dev'; fi) --no-interaction --no-ansi \
     # Cleaning poetry installation's cache for production:
@@ -84,10 +84,7 @@ ENV PYTHONPATH=/app
 # Switch to a non-root user, which is recommended by Heroku.
 # USER app
 
-# Create the log file to be able to run tail
-RUN touch /var/log/cron.log
-
-EXPOSE 8001
 # Run the run script, it will check for an /app/prestart.sh script (e.g. for migrations)
 # And then will start Uvicorn
+EXPOSE 8001
 CMD ["./run.sh"]

@@ -38,7 +38,6 @@ black = {version = "^22.3.0", allow-prereleases = true}
 autoflake = "^1.5.3"
 isort = "^5.10.1"
 sqlalchemy-stubs = "^0.4"
-windows-curses = "^2.3.0"
 
 [tool.isort]
 multi_line_output = 3
