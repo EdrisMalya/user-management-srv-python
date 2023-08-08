@@ -8,8 +8,9 @@ public/
 .mypy_cache
 
 .coverage
-.env*
 !.env.example
 celerybeat-schedule
 docker-compose.override.yml
 logfile.log
+.env
+.idea/

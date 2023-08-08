@@ -33,6 +33,7 @@ RUN apt-get update \
     && apt-get install tzdata -y \
     && apt-get install cron -y \
     && apt-get install time -y \
+    && apt-get install python3-pip -y \
     && apt-get install bc -y \
     && apt-get install --reinstall build-essential -y
 
@@ -43,28 +44,19 @@ RUN curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add -
 #Debian 10
 RUN curl https://packages.microsoft.com/config/debian/10/prod.list > /etc/apt/sources.list.d/mssql-release.list
 
-RUN apt-get update 
+RUN apt-get update
 RUN ACCEPT_EULA=Y apt-get install -y msodbcsql18
 # optional: for unixODBC development headers
 RUN apt-get install -y unixodbc-dev
 
 # Install Poetry
-RUN curl -sSL https://install.python-poetry.org | POETRY_HOME=/opt/poetry python3 && \
-    cd /usr/local/bin && \
-    ln -s /opt/poetry/bin/poetry && \
-    poetry config virtualenvs.create false
+RUN curl -sSL https://install.python-poetry.org | python3 -
 
 # Copy poetry.lock* in case it doesn't exist in the repo
-COPY ./pyproject.toml ./poetry.lock* /app/
-
+COPY ./pyproject.toml ./poetry.lock* ./requirements.txt ./run.sh /app/
 # Project initialization:
 # hadolint ignore=SC2046
-RUN echo "$FASTAPI_ENV" && poetry version
-# Install deps:
-RUN poetry run pip install -U pip 
-RUN poetry install $(if [ "$FASTAPI_ENV" = 'production' ]; then echo '--no-dev'; fi) --no-interaction --no-ansi \
-    # Cleaning poetry installation's cache for production:
-    && if [ "$FASTAPI_ENV" = 'production' ]; then rm -rf "$POETRY_CACHE_DIR"; fi
+RUN pip install -r requirements.txt
 
 
 # copy source code
@@ -84,7 +76,13 @@ ENV PYTHONPATH=/app
 # Switch to a non-root user, which is recommended by Heroku.
 # USER app
 
+# Create the log file to be able to run tail
+RUN touch /var/log/cron.log
+
+EXPOSE 8001
 # Run the run script, it will check for an /app/prestart.sh script (e.g. for migrations)
 # And then will start Uvicorn
-EXPOSE 8001
+RUN rm /etc/ssl/openssl.cnf.cnf
+COPY ./openssl.cnf /etc/ssl
+
 CMD ["./run.sh"]
