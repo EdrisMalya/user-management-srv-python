@@ -82,7 +82,7 @@ RUN touch /var/log/cron.log
 EXPOSE 8001
 # Run the run script, it will check for an /app/prestart.sh script (e.g. for migrations)
 # And then will start Uvicorn
-RUN rm /etc/ssl/openssl.cnf.cnf
+RUN rm /etc/ssl/openssl.cnf
 COPY ./openssl.cnf /etc/ssl
 
 CMD ["./run.sh"]

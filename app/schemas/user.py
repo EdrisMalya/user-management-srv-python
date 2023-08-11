@@ -8,7 +8,7 @@ class UserBase(BaseModel):
     employee_id: Optional[int] = None
     first_name: Optional[str] = None
     last_name: Optional[str] = None
-    email: Optional[EmailStr] = None
+    email: Optional[str] = None
     subscriberId: Optional[int] = None
     is_active: Optional[bool] = False
     is_superuser: Optional[bool] = False

@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/pcr_user_management_svc.iml" filepath="$PROJECT_DIR$/.idea/pcr_user_management_svc.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/dab-user-management.iml" filepath="$PROJECT_DIR$/.idea/dab-user-management.iml" />
     </modules>
   </component>
 </project>

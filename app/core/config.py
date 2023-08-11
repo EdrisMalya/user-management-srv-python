@@ -40,7 +40,7 @@ class Settings(BaseSettings):
 
     PROJECT_NAME: str = "DAB User Management"
 
-    MSSQL_DRIVER = "ODBC Driver 17 for SQL Server"
+    MSSQL_DRIVER = "ODBC Driver 18 for SQL Server"
     MSSQL_DRIVER_PRODUCTION = "sql-server-data-source"
     MSSQL_SERVER = os.getenv('DB_HOST')
     MSSQL_DATABASE = os.getenv('DB_DATABASE')

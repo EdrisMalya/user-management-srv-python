@@ -64,7 +64,7 @@ async def create_user(
         db: Session = Depends(deps.get_db),
         first_name: str = Body(...),
         last_name: str = Body(None),
-        email: EmailStr = Body(...),
+        email: str = Body(...),
         is_active: bool = Body(False),
         employee_id: int = Body(...),
         password: str = Body(False),
@@ -112,13 +112,13 @@ async def create_user(
 
         # 4. Insert the user detail
         user = crud.user.create(db, obj_in=user_in)
-        publisher.publish(
-            queue_name="emails",
-            exchange_name="emails",
-            method="user_created",
-            message={"email": email, "random_password": random_password},
-            routing_key="emails",
-        )
+        # publisher.publish(
+        #     queue_name="emails",
+        #     exchange_name="emails",
+        #     method="user_created",
+        #     message={"email": email, "random_password": random_password},
+        #     routing_key="emails",
+        # )
         raise HTTPException(
             status_code=status.HTTP_201_CREATED,
             detail={"status": True, "message": "User created successfully"},
@@ -215,6 +215,7 @@ def update_user(
     Update a user.
     """
     loggedInUser = current_user.__dict__
+    print(loggedInUser)
     if "user.edit" in permissions or loggedInUser["is_superuser"] == True:
         db_user = crud.user.get(db, id=user_id)
         if user_in.password == '':
