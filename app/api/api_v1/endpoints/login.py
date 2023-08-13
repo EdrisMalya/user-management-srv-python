@@ -202,13 +202,6 @@ def change_password(
     db.commit()
 
     # 6. Send an email to the user that the password has been changed successfully
-    publisher.publish(
-        queue_name="emails",
-        exchange_name="emails",
-        method="user_password_changed",
-        message={"email": current_user.email},
-        routing_key="emails",
-    )
 
     # 7. Returnt the status_code with message
     raise HTTPException(

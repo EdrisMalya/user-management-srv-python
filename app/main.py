@@ -22,7 +22,7 @@ from app.app_logger_formatter import CustomFormatter
 os.environ["TZ"] = "Asia/Kabul"
 
 app = FastAPI(
-    title="PCR User Management Service",
+    title="HR user management service",
     openapi_url=f"{settings.API_V1_STR}/openapi.json",
 )
 
