@@ -21,7 +21,7 @@ async def read_roles(
     Retrieve roles.
     """
     loggedInUser = current_user.__dict__
-    if "roles.view" in permissions or loggedInUser["is_superuser"] == True:
+    if "roles.access" in permissions or loggedInUser["is_superuser"] == True:
         return crud.role.get_multi(db=db, skip=skip, limit=limit)
     else:
         raise HTTPException(

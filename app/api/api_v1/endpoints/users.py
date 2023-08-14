@@ -35,7 +35,7 @@ def read_users(
     Retrieve users.
     """
     loggedInUser = current_user.__dict__
-    if "user.view" in permissions or loggedInUser["is_superuser"] == True:
+    if "user.access" in permissions or loggedInUser["is_superuser"] == True:
         users = crud.user.get_multi_paginated(
             db=db,
             page=page,
