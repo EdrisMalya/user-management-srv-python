@@ -36,7 +36,7 @@ def read_users(
     """
     loggedInUser = current_user.__dict__
     if "user.access" in permissions or loggedInUser["is_superuser"] == True:
-        users = crud.user.get_multi_paginated(
+        return crud.user.get_multi_paginated(
             db=db,
             page=page,
             limit=limit,
@@ -44,13 +44,9 @@ def read_users(
             field_name=sort,
             order_by=direction,
             role_id=role_id,
+            user_id=current_user.id
         )
-        if len(users["data"]) <= 0:
-            raise HTTPException(
-                status_code=404, detail={"status": False, "message": "User not found"}
-            )
-        else:
-            return users
+
     else:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -183,18 +179,7 @@ def read_user_by_id(
     """
     loggedInUser = current_user.__dict__
     if "user.view" in permissions or loggedInUser["is_superuser"] == True:
-        user = crud.user.get_single_user(db, user_id=user_id)
-        if user == current_user:
-            return user
-        if not crud.user.is_superuser(current_user):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail={
-                    "status": False,
-                    "message": "The user doesn't have enough privileges",
-                },
-            )
-        return user
+        return crud.user.get_single_user(db, user_id=user_id)
     else:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

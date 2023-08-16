@@ -48,10 +48,11 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
         field_name: str,
         order_by: str,
         role_id: int,
+        user_id: int,
     ) -> UserOutputPaginated:
 
         # Retrieve all the data for the User model and store it in a data variable
-        data = db.query(User)
+        data = db.query(User).filter(User.id != user_id)
 
         if role_id != 0 and role_id > 0:
             data = data.join(UserRole).filter(UserRole.role_id == role_id)

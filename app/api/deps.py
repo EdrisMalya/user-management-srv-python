@@ -74,30 +74,29 @@ def get_current_active_user_permissions(
     current_user: Any = Depends(get_current_user),
 ) -> list:
     # Get the Roles based on User ID
-    roles: list = (
-        db.query(models.UserRole.role_id)
-        .filter(models.UserRole.user_id == current_user.id)
-        .all()
-    )
-    # Get the permission ID based on roles ID
-    for role in roles:
-        permissions = (
-            db.query(models.RolePermission.permission_id)
-            .filter(models.RolePermission.role_id == role["role_id"])
-            .all()
-        )
-    # Get the permission_names base on permissio IDs
-    permission_names = []
-    for perm in permissions:
-        permission_names.append(
-            db.query(models.Permission.name)
-            .filter(models.Permission.id == perm["permission_id"])
-            .all()
-        )
-    # Loop through the permissions List[Tuple] and extract only the name string and store it
-    # in a new variable, then return it back to the function
-    p_names = []
-    for p in permission_names:
-        for r in p:
-            p_names.append(r["name"])
-    return p_names
+    roles = crud.user.get_user_roles(db=db, user_id=current_user.id)
+    if roles:
+        role_arr = []
+        for r in roles:
+            role_arr.append(r.role_id)
+
+        # Second retrive all the permissions for the user in the assigned roles
+        get_permissions_by_role_id = []
+        get_permissions_by_permission_id = []
+        for r in roles:
+            get_permissions_by_role_id.append(
+                crud.user.get_user_permissions_based_on_roles(db=db, role_id=r.role_id)
+            )
+        # Loop through the permissions retrived respected to role_id from role_permission table
+        # Store the result in a variable
+        for permission in get_permissions_by_role_id:
+            for p in permission:
+                get_permissions_by_permission_id.append(
+                    crud.permission.get(db=db, id=p.permission_id)
+                )
+        # This iteration is for getting the permissions name from permission table respected to the permission ID
+        permissions = []
+        for x in get_permissions_by_permission_id:
+            permissions.append(x.name)
+
+    return permissions
