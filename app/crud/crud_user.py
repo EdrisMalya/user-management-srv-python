@@ -66,6 +66,7 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
                     User.first_name.like(search),
                     User.last_name.like(search),
                     User.email.like(search),
+                    User.employee_id.like(search),
                 )
             )
 

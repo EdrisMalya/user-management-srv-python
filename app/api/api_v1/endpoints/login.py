@@ -149,16 +149,6 @@ def change_password(
     # store old password hashed for later use
     old_password_hashed = user.password
 
-    # Check if the password policy matches
-    if not check_password_policy(new_password):
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail={
-                "field_name": "new_password",
-                "message": "Password does not meet the menimum password policy requirement",
-            },
-        )
-
     # 2. Verify the new_password and confirm_password matches
     if new_password != confirm_password:
         raise HTTPException(
