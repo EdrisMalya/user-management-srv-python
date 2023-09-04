@@ -46,6 +46,7 @@ class Settings(BaseSettings):
     MSSQL_DATABASE = os.getenv('DB_DATABASE')
     MSSQL_USER = os.getenv('DB_USER')
     MSSQL_PASS = os.getenv('DB_PASSWORD')
+    RABBIT_MQ_HOST = os.getenv('RABBIT_MQ_HOST')
 
     FIRST_SUPERUSER: EmailStr = "mnaim.faizy@gmail.com"
     FIRST_SUPERUSER_PW: str = "password"

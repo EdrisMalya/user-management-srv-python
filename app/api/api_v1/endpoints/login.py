@@ -10,7 +10,7 @@ from app.core.producer import publisher
 from app.core.security import get_password_hash, verify_password
 from app.models.user_password_history import UserPasswordHistory
 from app.utils import check_password_policy, generate_password_reset_token, verify_password_reset_token
-from fastapi import APIRouter, Depends, Form, HTTPException, status
+from fastapi import APIRouter, Depends, Form, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import exc
 from sqlalchemy.orm import Session
@@ -20,22 +20,48 @@ router = APIRouter()
 
 @router.post("/login/access-token", response_model=schemas.Token)
 def login_access_token(
+    request: Request,
     db: Session = Depends(deps.get_db), form_data: OAuth2PasswordRequestForm = Depends()
 ) -> Any:
     """
     OAuth2 compatible token login, get an access token for future requests
     """
-    print(
-        'test'
-    )
     user = crud.user.authenticate(
         db, email=form_data.username, password=form_data.password
     )
         # return user
     if not user:
+        publisher.publish(
+            queue_name="logs",
+            exchange_name="logs",
+            method="login_log",
+            message={
+                "service": 'hr',
+                "requester_ip": request.client.host,
+                "requester_username": form_data.username,
+                "login_succeed": False,
+                "failed_error": 'Username or password is incorrect',
+                "issued_token": None,
+            },
+            routing_key="logs",
+        )
         raise HTTPException(status_code=400, detail="Incorrect email or password")
     # Check if the user is active or not
     elif not crud.user.is_active(user):
+        publisher.publish(
+            queue_name="logs",
+            exchange_name="logs",
+            method="login_log",
+            message={
+                "service": 'hr',
+                "requester_ip": request.client.host,
+                "requester_username": form_data.username,
+                "login_succeed": False,
+                "failed_error": 'Inactive user',
+                "issued_token": None,
+            },
+            routing_key="logs",
+        )
         raise HTTPException(status_code=400, detail="Inactive user")
     # First check if there are any roles assigned to the user
     roles = crud.user.get_user_roles(db=db, user_id=user.id)
@@ -70,13 +96,28 @@ def login_access_token(
         permissions = []
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     # publisher.publish(queue_name="logging", exchange_name="logging", method="login_successfull", message={"message":f"User {user.email} loggedin successfully", "severityId": 1, "categoryId": 2}, routing_key="logging")
-    return {
-        "access_token": security.create_access_token(
+    token = security.create_access_token(
             user.id,
             expires_delta=access_token_expires,
             roles=role_arr,
             permissions=permissions,
-        ),
+        )
+    publisher.publish(
+        queue_name="logs",
+        exchange_name="logs",
+        method="login_log",
+        message={
+            "service": 'hr',
+            "requester_ip": request.client.host,
+            "requester_username": form_data.username,
+            "login_succeed": True,
+            "failed_error": 'Logged in successfully',
+            "issued_token": None,
+        },
+        routing_key="logs",
+    )
+    return {
+        "access_token": token,
         "token_type": "bearer",
     }
 

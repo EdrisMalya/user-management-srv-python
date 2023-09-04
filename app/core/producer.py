@@ -3,6 +3,8 @@ import os
 
 import pika
 
+from app.core.config import settings
+
 
 class Publisher:
     def publish(self, queue_name, exchange_name, method, message, routing_key):
@@ -50,15 +52,15 @@ class Publisher:
         # params = pika.URLParameters("amqp://guest:guest@10.0.0.95:5672/%2F?heartbeat=30")
         if os.getenv('FASTAPI_ENV') == 'production':
             params = pika.ConnectionParameters(
-                host="10.0.0.62", heartbeat=600, blocked_connection_timeout=300
+                host=settings.RABBIT_MQ_HOST, heartbeat=600, blocked_connection_timeout=300
             )
         elif os.getenv('FASTAPI_ENV') == 'development':
             params = pika.ConnectionParameters(
-                host="10.0.0.30", heartbeat=600, blocked_connection_timeout=300
+                host=settings.RABBIT_MQ_HOST, heartbeat=600, blocked_connection_timeout=300
             )
         else:
             params = pika.ConnectionParameters(
-                host="localhost", heartbeat=600, blocked_connection_timeout=300
+                host=settings.RABBIT_MQ_HOST, heartbeat=600, blocked_connection_timeout=300
             )
         return pika.BlockingConnection(params)
 
