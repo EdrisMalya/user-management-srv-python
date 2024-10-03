@@ -50,18 +50,9 @@ class Publisher:
     # Create new connection
     def create_connection(self):
         # params = pika.URLParameters("amqp://guest:guest@10.0.0.95:5672/%2F?heartbeat=30")
-        if os.getenv('FASTAPI_ENV') == 'production':
-            params = pika.ConnectionParameters(
-                host=settings.RABBIT_MQ_HOST, heartbeat=600, blocked_connection_timeout=300
-            )
-        elif os.getenv('FASTAPI_ENV') == 'development':
-            params = pika.ConnectionParameters(
-                host=settings.RABBIT_MQ_HOST, heartbeat=600, blocked_connection_timeout=300
-            )
-        else:
-            params = pika.ConnectionParameters(
-                host=settings.RABBIT_MQ_HOST, heartbeat=600, blocked_connection_timeout=300
-            )
+        params = pika.ConnectionParameters(
+            host=settings.RABBIT_MQ_HOST, heartbeat=600, blocked_connection_timeout=300, port=settings.RABBIT_MQ_PORT
+        )
         return pika.BlockingConnection(params)
 
 

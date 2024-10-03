@@ -45,7 +45,14 @@ def login_access_token(
             },
             routing_key="logs",
         )
-        raise HTTPException(status_code=400, detail="Incorrect email or password")
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={
+                "field_name": "username",
+                "message": "Incorrect username or password",
+            },
+        )
+
     # Check if the user is active or not
     elif not crud.user.is_active(user):
         publisher.publish(

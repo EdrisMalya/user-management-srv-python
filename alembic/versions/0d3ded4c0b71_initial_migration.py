@@ -1,8 +1,8 @@
-"""Create User Management Tables
+"""Initial migration
 
-Revision ID: 554b9f4c9d76
+Revision ID: 0d3ded4c0b71
 Revises: 
-Create Date: 2023-02-04 18:50:50.923977
+Create Date: 2024-10-03 09:04:06.049109
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '554b9f4c9d76'
+revision = '0d3ded4c0b71'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -72,6 +72,7 @@ def upgrade() -> None:
     op.create_index(op.f('ix_role_permission_role_id'), 'role_permission', ['role_id'], unique=False)
     op.create_table('user',
     sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('employee_id', sa.Integer(), nullable=True),
     sa.Column('first_name', sa.String(length=250), nullable=True),
     sa.Column('last_name', sa.String(length=250), nullable=True),
     sa.Column('email', sa.String(length=250), nullable=False),
@@ -89,6 +90,7 @@ def upgrade() -> None:
     )
     op.create_index(op.f('ix_user_contactPhone'), 'user', ['contactPhone'], unique=False)
     op.create_index(op.f('ix_user_email'), 'user', ['email'], unique=True)
+    op.create_index(op.f('ix_user_employee_id'), 'user', ['employee_id'], unique=False)
     op.create_index(op.f('ix_user_expiryDate'), 'user', ['expiryDate'], unique=False)
     op.create_index(op.f('ix_user_first_name'), 'user', ['first_name'], unique=False)
     op.create_index(op.f('ix_user_id'), 'user', ['id'], unique=False)
@@ -162,6 +164,7 @@ def downgrade() -> None:
     op.drop_index(op.f('ix_user_id'), table_name='user')
     op.drop_index(op.f('ix_user_first_name'), table_name='user')
     op.drop_index(op.f('ix_user_expiryDate'), table_name='user')
+    op.drop_index(op.f('ix_user_employee_id'), table_name='user')
     op.drop_index(op.f('ix_user_email'), table_name='user')
     op.drop_index(op.f('ix_user_contactPhone'), table_name='user')
     op.drop_table('user')

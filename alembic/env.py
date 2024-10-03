@@ -33,35 +33,16 @@ target_metadata = Base.metadata
 # ... etc.
 
 def get_url():
-    if os.getenv('FASTAPI_ENV') == 'production':
-        driver = os.getenv("MSSQL_DRIVER")
-        user = os.getenv("MSSQL_LIVE_USER")
-        password = os.getenv("MSSQL_LIVE_PASS")
-        server = os.getenv("MSSQL_LIVE_SERVER")
-        db = os.getenv("MSSQL_LIVE_DATABASE")  
-        params = urllib.parse.quote_plus(f"DRIVER={driver};SERVER={server};DATABASE={db};UID={user};PWD={password};ENCRYPT=no;CONNECTION_TIMEOUT=30")
-        return f"mssql+pyodbc:///?odbc_connect=%s" % params     
-    elif os.getenv('FASTAPI_ENV') == 'development':
-        driver = os.getenv("MSSQL_DRIVER_PRODUCTION")
-        user = os.getenv("MSSQL_TEST_USER")
-        password = os.getenv("MSSQL_TEST_PASS")
-        server = os.getenv("MSSQL_TEST_SERVER")
-        db = os.getenv("MSSQL_TEST_DATABASE")
-        params = urllib.parse.quote_plus(f"DRIVER={driver};SERVER={server};DATABASE={db};UID={user};PWD={password};ENCRYPT=no;CONNECTION_TIMEOUT=30")
-        return f"mssql+pyodbc:///?odbc_connect=%s" % params
-    else:
-        driver = settings.MSSQL_DRIVER
-        user = settings.MSSQL_TEST_USER
-        password = settings.MSSQL_TEST_PASS if socket.gethostname().upper() != 'NAIM-FAIZY-PC' else 'Kabul@123'
-        server = settings.MSSQL_TEST_SERVER if socket.gethostname().upper() != 'NAIM-FAIZY-PC' else 'NAIM-FAIZY-PC'
-        db = settings.MSSQL_TEST_DATABASE
-        params = urllib.parse.quote_plus(
-            f"DRIVER={driver};SERVER={server};DATABASE={db};UID={user};PWD={password};ENCRYPT=no;CONNECTION_TIMEOUT=30")
-        return f"mssql+pyodbc:///?odbc_connect=%s" % params
-
+    odbc_driver = settings.MSSQL_DRIVER.strip("'")
+    host = settings.MSSQL_SERVER.strip("'")
+    database = settings.MSSQL_DATABASE
+    user = settings.MSSQL_USER
+    password = settings.MSSQL_PASS
+    params = urllib.parse.quote_plus(
+        f"DRIVER={odbc_driver};SERVER={host};DATABASE={database};UID={user};PWD={password};ENCRYPT=no;CONNECTION_TIMEOUT=30;TrustServerCertificate=yes"
+    )
+    return f"mssql+pyodbc:///?odbc_connect=%s" % params
         
-
-
 
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode.
