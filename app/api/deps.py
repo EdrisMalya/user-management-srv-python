@@ -73,7 +73,8 @@ def get_current_active_user_permissions(
     db: Session = Depends(get_db),
     current_user: Any = Depends(get_current_user),
 ) -> list:
-    # Get the Roles based on User ID
+    if current_user.is_superuser:
+        return []
     roles = crud.user.get_user_roles(db=db, user_id=current_user.id)
     if roles:
         role_arr = []
@@ -99,4 +100,4 @@ def get_current_active_user_permissions(
         for x in get_permissions_by_permission_id:
             permissions.append(x.name)
 
-    return permissions
+        return list(set(permissions))

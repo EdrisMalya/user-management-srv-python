@@ -4,6 +4,7 @@ from app import schemas
 from app.core.producer import publisher
 from app.utils import generate_random_password
 from fastapi import APIRouter
+import re
 from pydantic.networks import EmailStr
 
 router = APIRouter()
@@ -27,3 +28,17 @@ def test_email(
         routing_key="emails",
     )
     return {"msg": "Test email sent"}
+
+
+def slug(text):
+    # Convert the text to lowercase
+    text = text.lower()
+
+    # Replace all non-alphanumeric characters with a hyphen
+    text = re.sub(r'[^a-zA-Z0-9]+', '-', text)
+
+    # Remove any leading or trailing hyphens
+    text = text.strip('-')
+
+    # Return the resulting slug
+    return text

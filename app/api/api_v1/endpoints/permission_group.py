@@ -1,25 +1,29 @@
-from typing import Any
+from typing import Any, Union, Dict
+
+from sqlalchemy import and_
 
 from app import crud, models, schemas
 from app.api import deps
-from fastapi import APIRouter, Body, Depends, HTTPException, status
+from fastapi import APIRouter, Body, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
+from app.models import PermissionGroup
 
 router = APIRouter()
+
 
 # GET Multiple permission_group
 @router.get("/", response_model=Any)
 def read_permission_group(
-    db: Session = Depends(deps.get_db),
-    skip: int = 1,
-    limit: int = 10,
-    current_user: models.User = Depends(deps.get_current_active_user),
-    permissions: list = Depends(deps.get_current_active_user_permissions),
-    
+        db: Session = Depends(deps.get_db),
+        skip: int = 1,
+        limit: int = 10,
+        current_user: models.User = Depends(deps.get_current_active_user),
+        permissions: list = Depends(deps.get_current_active_user_permissions),
+
 ) -> Any:
     "Retrive permission group"
     loggedInUser = current_user.__dict__
-    if "permission.view" in permissions or loggedInUser["is_superuser"] == True:
+    if "roles-access" in permissions or loggedInUser["is_superuser"] == True:
         permission_groups = crud.permission_group.get_multi(db=db, skip=skip, limit=limit)
         return permission_groups
     else:
@@ -27,7 +31,7 @@ def read_permission_group(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail={"status": False, "message": "You do not have enough privileges"},
         )
-        
+
 
 # GET Single permission_group
 @router.get(
@@ -35,12 +39,12 @@ def read_permission_group(
     response_model=Any,
 )
 def read_single_permission_group(
-    *,
-    db: Session = Depends(deps.get_db),
-    permission_group_id: int,
-    current_user: models.User = Depends(deps.get_current_active_user),
-    permissions: list = Depends(deps.get_current_active_user_permissions),
-    
+        *,
+        db: Session = Depends(deps.get_db),
+        permission_group_id: int,
+        current_user: models.User = Depends(deps.get_current_active_user),
+        permissions: list = Depends(deps.get_current_active_user_permissions),
+
 ) -> Any:
     "GET permission_group by ID"
     loggedInUser = current_user.__dict__
@@ -51,7 +55,7 @@ def read_single_permission_group(
                 status_code=status.HTTP_200_OK,
                 detail={"status": False, "message": "Permission Group not found"},
             )
-        return permission_group    
+        return permission_group
     else:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -65,17 +69,25 @@ def read_single_permission_group(
     response_model=schemas.PermissionGroup,
 )
 def create_permission_group(
-    *,
-    db: Session = Depends(deps.get_db),
-    name: str = Body(...),
-    permission_group_id: int = Body(None),
-    current_user: models.User = Depends(deps.get_current_active_user),
-    permissions: list = Depends(deps.get_current_active_user_permissions),
-    
+        *,
+        db: Session = Depends(deps.get_db),
+        name: str = Body(...),
+        permission_group_id: int = Body(None),
+        current_user: models.User = Depends(deps.get_current_active_user),
+        permissions: list = Depends(deps.get_current_active_user_permissions),
+
 ) -> models.PermissionGroup:
     "Create new PermissionGroup"
     loggedInUser = current_user.__dict__
-    if "permission.add" in permissions or loggedInUser["is_superuser"] == True:
+    if "roles-access" in permissions or loggedInUser["is_superuser"] == True:
+        result = crud.permission_group.get_by_permission_group_name(
+            db=db, name=name, permission_group_id=permission_group_id
+        )
+        if result is not None:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail={"field_name": "name", "message": "Permission Group is duplicate, please type new one"}
+            )
         permission_group_in = schemas.PermissionGroupCreate(
             name=name, permission_group_id=permission_group_id
         )
@@ -85,7 +97,7 @@ def create_permission_group(
                 detail="Permission Group name is required",
             )
         if crud.permission_group.create(
-            db=db, obj_in=permission_group_in, user_id=current_user.id
+                db=db, obj_in=permission_group_in, user_id=current_user.id
         ):
             raise HTTPException(
                 status_code=status.HTTP_201_CREATED,
@@ -105,17 +117,30 @@ def create_permission_group(
 
 @router.put("/{permission_group_id}", response_model=schemas.PermissionGroup)
 def update_permission_group(
-    *,
-    db: Session = Depends(deps.get_db),
-    permission_group_in: schemas.PermissionGroupUpdate = Body(embed=False),
-    permission_group_id: int,
-    current_user: models.User = Depends(deps.get_current_active_user),
-    permissions: list = Depends(deps.get_current_active_user_permissions),
+        *,
+        db: Session = Depends(deps.get_db),
+        permission_group_in: schemas.PermissionGroupUpdate = Body(embed=False),
+        permission_group_id: int,
+        current_user: models.User = Depends(deps.get_current_active_user),
+        permissions: list = Depends(deps.get_current_active_user_permissions),
 
 ) -> Any:
     "update Permission Group"
     loggedInUser = current_user.__dict__
-    if "permission.edit" in permissions or loggedInUser["is_superuser"] == True:
+    if "roles-access" in permissions or loggedInUser["is_superuser"] == True:
+        result = (
+            db.query(PermissionGroup)
+            .filter(
+                PermissionGroup.name == permission_group_in.name,
+                and_(PermissionGroup.permission_group_id == permission_group_id)
+            )
+            .first()
+        )
+        if result is not None:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail={"field_name": "name", "message": "Permission Group is duplicate, please type new one"}
+            )
         permission_group = crud.permission_group.get_single_record(
             db=db, id=permission_group_id
         )
@@ -125,7 +150,7 @@ def update_permission_group(
                 detail={"status": False, "message": "PermissionGroup not found"},
             )
         if crud.permission_group.update(
-            db=db, db_obj=permission_group, obj_in=permission_group_in
+                db=db, db_obj=permission_group, obj_in=permission_group_in
         ):
             raise HTTPException(
                 status_code=status.HTTP_200_OK,
@@ -143,13 +168,50 @@ def update_permission_group(
         )
 
 
+@router.post('/update_group_order/{permission_group_id}', response_model=Any)
+def update_group_order(
+        *,
+        db: Session = Depends(deps.get_db),
+        permission_group_id: int,
+        current_user: models.User = Depends(deps.get_current_active_user),
+        permissions: list = Depends(deps.get_current_active_user_permissions),
+        data: Dict[str, Any] = Body(None),
+) -> Any:
+    if permission_group_id == 0:
+        permission_group_id = None
+
+    first = (db.query(PermissionGroup)
+             .filter(PermissionGroup.permission_group_id == permission_group_id,
+                     and_(PermissionGroup.order == data['removed_index']))
+             .first()
+             )
+
+    last = (db.query(PermissionGroup)
+            .filter(PermissionGroup.permission_group_id == permission_group_id,
+                    and_(PermissionGroup.order == data['added_index']))
+            .first()
+            )
+
+    first.order = data['added_index']
+    db.add(first)
+
+    last.order = data['removed_index']
+    db.add(last)
+    db.commit()
+
+    raise HTTPException(status_code=status.HTTP_200_OK, detail={
+        "status": True,
+        "message": "Updated"
+    })
+
+
 @router.delete("/{permission_group_id}", response_model=schemas.PermissionGroup)
 def delete_item(
-    *,
-    db: Session = Depends(deps.get_db),
-    permission_group_id: int,
-    current_user: models.User = Depends(deps.get_current_active_user),
-    permissions: list = Depends(deps.get_current_active_user_permissions),
+        *,
+        db: Session = Depends(deps.get_db),
+        permission_group_id: int,
+        current_user: models.User = Depends(deps.get_current_active_user),
+        permissions: list = Depends(deps.get_current_active_user_permissions),
 
 ) -> Any:
     "Delete Permission Group"
@@ -157,7 +219,7 @@ def delete_item(
     if "permission.delete" in permissions or loggedInUser["is_superuser"] == True:
         # First check if permission_group has no other permission_group inside it
         if crud.permission_group.check_permission_group_has_groups(
-            db=db, id=permission_group_id
+                db=db, id=permission_group_id
         ):
             raise HTTPException(
                 status_code=status.HTTP_200_OK,
@@ -169,7 +231,7 @@ def delete_item(
 
         # Check if the group has any permissions assigned to it
         if crud.permission_group.check_if_group_has_permissions(
-            db=db, id=permission_group_id
+                db=db, id=permission_group_id
         ):
             raise HTTPException(
                 status_code=status.HTTP_200_OK,

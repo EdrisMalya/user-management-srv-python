@@ -3,9 +3,10 @@ from typing import Any, Dict, List, Optional, Union
 from fastapi import HTTPException, status
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy import delete, exc
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, with_loader_criteria
 
 from app.crud.base import CRUDBase
+from app.models import Role, UserRole, User
 from app.models.role_group import RoleGroup
 from app.models.role_group_map import RoleGroupMap
 from app.schemas.role_group import RoleGroupCreate, RoleGroupUpdate
@@ -22,8 +23,12 @@ class CRUDRoleGroup(CRUDBase[RoleGroup, RoleGroupCreate, RoleGroupUpdate]):
             .first()
         )
 
-    def get_multi(self, db: Session) -> List[Any]:
-        return db.query(RoleGroup).options(joinedload(RoleGroup.roles)).all()
+    def get_multi(self, db: Session, current_user: User) -> List[Any]:
+        role_ids = [item.role_id for item in db.query(UserRole).filter(UserRole.user_id == current_user.id)]
+        return db.query(RoleGroup).options(
+            joinedload(RoleGroup.roles),
+            with_loader_criteria(Role, Role.id.notin_(role_ids)),
+        ).all()
 
     def get_multi_paginated(
         self, db: Session, *, page: int = 0, limit: int = 100

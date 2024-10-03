@@ -16,7 +16,7 @@ from .role_group import (
     RoleGroupUpdate,
 )
 from .role_permission import RolePermission
-from .token import Token, TokenPayload
+from .token import Token, TokenPayload, AccessToken, RefreshTokenPayload
 from .user import (
     User,
     UserCreate,

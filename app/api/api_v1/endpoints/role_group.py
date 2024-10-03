@@ -17,8 +17,8 @@ def read_role_group(
 ) -> Any:
     "Retrieve role group"
     loggedInUser = current_user.__dict__
-    if "roles.view" in permissions or loggedInUser["is_superuser"] == True:
-        role_groups = crud.role_group.get_multi(db=db)
+    if "roles-access" in permissions or loggedInUser["is_superuser"] == True:
+        role_groups = crud.role_group.get_multi(db=db, current_user=current_user)
         return role_groups
     else:
         raise HTTPException(

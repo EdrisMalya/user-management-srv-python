@@ -163,7 +163,7 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
             else:
                 roles = []
                 for r in update_data["role_id"]:
-                    roles.append(r["value"])
+                    roles.append(r["id"])
                 # roles = db.query(UserRole).get(db_obj.id)
                 # for role in roles:
                 stmt = delete(UserRole).where(UserRole.user_id == db_obj.id)

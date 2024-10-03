@@ -2,41 +2,53 @@ import json
 from datetime import datetime, timedelta
 from typing import Any
 
+from fastapi.encoders import jsonable_encoder
+from jose import jwt
+from sqlalchemy.sql import Update
+
 from app import crud, models, schemas
 from app.api import deps
 from app.core import security
 from app.core.config import settings
 from app.core.producer import publisher
 from app.core.security import get_password_hash, verify_password
+from app.models import User
 from app.models.user_password_history import UserPasswordHistory
 from app.utils import check_password_policy, generate_password_reset_token, verify_password_reset_token
-from fastapi import APIRouter, Depends, Form, HTTPException, status, Request
+from fastapi import APIRouter, Depends, Form, HTTPException, status, Request, Response, Body
 from fastapi.security import OAuth2PasswordRequestForm
-from sqlalchemy import exc
+from sqlalchemy import exc, update
 from sqlalchemy.orm import Session
 
 router = APIRouter()
 
+access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+refresh_token_expires = timedelta(minutes=settings.REFRESH_TOKEN_EXPIRE_MINUTES)
 
-@router.post("/login/access-token", response_model=schemas.Token)
+@router.post("/login/access-token", response_model=Any)
 def login_access_token(
-    request: Request,
-    db: Session = Depends(deps.get_db), form_data: OAuth2PasswordRequestForm = Depends()
+        request: Request,
+        response: Response,
+        db: Session = Depends(deps.get_db),
+        form_data: OAuth2PasswordRequestForm = Depends()
 ) -> Any:
+
     """
     OAuth2 compatible token login, get an access token for future requests
     """
     user = crud.user.authenticate(
         db, email=form_data.username, password=form_data.password
     )
-        # return user
+
     if not user:
+        email_user = crud.user.get_by_email(db=db, email=form_data.username)
+        failed_message = 'Username or password is incorrect'
         publisher.publish(
             queue_name="logs",
             exchange_name="logs",
             method="login_log",
             message={
-                "service": 'hr',
+                "service": 'ftt',
                 "requester_ip": request.client.host,
                 "requester_username": form_data.username,
                 "login_succeed": False,
@@ -45,14 +57,19 @@ def login_access_token(
             },
             routing_key="logs",
         )
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail={
-                "field_name": "username",
-                "message": "Incorrect username or password",
+        publisher.publish(
+            queue_name="websocket",
+            exchange_name="websocket",
+            method="revalidate-table",
+            message={
+                'table': 'loginLog',
             },
+            routing_key="websocket",
         )
-
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail={
+            'field_name': 'username',
+            'message': failed_message
+        })
     # Check if the user is active or not
     elif not crud.user.is_active(user):
         publisher.publish(
@@ -60,7 +77,7 @@ def login_access_token(
             exchange_name="logs",
             method="login_log",
             message={
-                "service": 'hr',
+                "service": 'ftt',
                 "requester_ip": request.client.host,
                 "requester_username": form_data.username,
                 "login_succeed": False,
@@ -69,64 +86,180 @@ def login_access_token(
             },
             routing_key="logs",
         )
-        raise HTTPException(status_code=400, detail="Inactive user")
-    # First check if there are any roles assigned to the user
-    roles = crud.user.get_user_roles(db=db, user_id=user.id)
-    if roles:
-        role_arr = []
-        for r in roles:
-            role_arr.append(r.role_id)
-        role_arr = json.dumps(role_arr)
-
-        # Second retrive all the permissions for the user in the assigned roles
-        get_permissions_by_role_id = []
-        get_permissions_by_permission_id = []
-        for r in roles:
-            get_permissions_by_role_id.append(
-                crud.user.get_user_permissions_based_on_roles(db=db, role_id=r.role_id)
-            )
-        # Loop through the permissions retrived respected to role_id from role_permission table
-        # Store the result in a variable
-        for permission in get_permissions_by_role_id:
-            for p in permission:
-                get_permissions_by_permission_id.append(
-                    crud.permission.get(db=db, id=p.permission_id)
-                )
-        # This iteration is for getting the permissions name from permission table respected to the permission ID
-        permissions = []
-        for x in get_permissions_by_permission_id:
-            permissions.append(x.name)
-        permissions = json.dumps(permissions)
-    else:
-        print("No Roles")
-        role_arr = []
-        permissions = []
-    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    # publisher.publish(queue_name="logging", exchange_name="logging", method="login_successfull", message={"message":f"User {user.email} loggedin successfully", "severityId": 1, "categoryId": 2}, routing_key="logging")
-    token = security.create_access_token(
-            user.id,
-            expires_delta=access_token_expires,
-            roles=role_arr,
-            permissions=permissions,
+        publisher.publish(
+            queue_name="websocket",
+            exchange_name="websocket",
+            method="revalidate-table",
+            message={
+                'table': 'loginLog',
+            },
+            routing_key="websocket",
         )
-    publisher.publish(
-        queue_name="logs",
-        exchange_name="logs",
-        method="login_log",
-        message={
-            "service": 'hr',
-            "requester_ip": request.client.host,
-            "requester_username": form_data.username,
-            "login_succeed": True,
-            "failed_error": 'Logged in successfully',
-            "issued_token": None,
-        },
-        routing_key="logs",
-    )
-    return {
-        "access_token": token,
-        "token_type": "bearer",
-    }
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={"field_name": "username", "message": "Inactive user"}
+        )
+    else:
+        date_string = user.expiryDate
+        expiration_date = datetime.strptime(date_string, '%Y/%m/%d')
+        current_date = datetime.now()
+
+        if current_date > expiration_date and not user.is_superuser:
+            publisher.publish(
+                queue_name="logs",
+                exchange_name="logs",
+                method="login_log",
+                message={
+                    "service": 'ftt',
+                    "requester_ip": request.client.host,
+                    "requester_username": form_data.username,
+                    "login_succeed": False,
+                    "failed_error": 'User is expired',
+                    "issued_token": None,
+                },
+                routing_key="logs",
+            )
+            publisher.publish(
+                queue_name="websocket",
+                exchange_name="websocket",
+                method="revalidate-table",
+                message={
+                    'table': 'loginLog',
+                },
+                routing_key="websocket",
+            )
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail={"field_name": "username", "message": "User is expired. Please contact with your admin"}
+            )
+        else:
+            access_token = security.create_access_token(
+                    user.id,
+                    user.email,
+                    expires_delta=access_token_expires,
+                )
+            refresh_token = security.create_refresh_token(subject=user.id, expires_delta=refresh_token_expires)
+            crud.LoggedInUserCRUD.check_login(db=db, user_id=user.id, refresh_token=refresh_token)
+            # raise HTTPException(
+            #     status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            #     detail={"field_name": "username", "message": "Inactive user"}
+            # )
+            response.set_cookie(key="refresh_token", path="/", domain="", value=refresh_token, httponly=True, samesite="strict", secure=False) # set HttpOnly cookie in response
+            # publisher.publish(queue_name="logging", exchange_name="logging", method="login_successfull", message={"message":f"User {user.email} loggedin successfully", "severityId": 1, "categoryId": 2}, routing_key="logging")
+
+            if user.lastChangedPasswordDate is not None:
+                input_date = str(user.lastChangedPasswordDate)
+
+                date = datetime.strptime(input_date, "%Y-%m-%d")
+                new_date = date + timedelta(days=30)
+                timestamp = new_date.timestamp()
+                current_date = datetime.now()
+                current_date_timestamp = current_date.timestamp()
+
+                if current_date_timestamp >= timestamp:
+                    update_query = update(User).where(User.id == user.id).values(needsToChangePassword=True)
+                    db.execute(update_query)
+                    db.commit()
+
+            publisher.publish(
+                queue_name="websocket",
+                exchange_name="websocket",
+                method="logged_in",
+                message={
+                    "service": 'ftt',
+                    'user': jsonable_encoder(user),
+                    'date': datetime.now().strftime("%b %d, %Y %I:%M:%S %p"),
+                    'ip': request.client.host
+                },
+                routing_key="websocket",
+            )
+            publisher.publish(
+                queue_name="logs",
+                exchange_name="logs",
+                method="login_log",
+                message={
+                    "service": 'ftt',
+                    "requester_ip": request.client.host,
+                    "requester_username": form_data.username,
+                    "login_succeed": True,
+                    "failed_error": 'User is expired',
+                    "issued_token": None,
+                },
+                routing_key="logs",
+            )
+            publisher.publish(
+                queue_name="websocket",
+                exchange_name="websocket",
+                method="revalidate-table",
+                message={
+                    'table': 'loginLog',
+                },
+                routing_key="websocket",
+            )
+            return {
+                "access_token": access_token,
+                "refresh_token": refresh_token,
+                "token_type": "bearer",
+            }
+
+@router.post("/login/refresh", response_model=schemas.AccessToken | Any)
+def refresh_token(
+        request: Request,
+        response: Response,
+        db: Session = Depends(deps.get_db),
+        refresh_token: str = Body(embed=True),
+) -> Any:
+    """
+    Generate new access token based on the refresh token
+    """
+    try:
+        # Only accept post requests
+        if request.method == "POST":
+            # refresh_token = request.cookies.get('refresh_token')
+            # 1. Check if the refresh_token is set
+            if refresh_token is None:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail={"status": False, "message": "User is not authenticated"}
+                )
+            # 2. Check if the refresh_token is valid
+            payload = jwt.decode(
+                refresh_token,
+                settings.JWT_REFRESH_SECRET_KEY,
+                algorithms=[settings.ALGORITHM],
+                audience=settings.TOKEN_AUDIENCE,
+                issuer=settings.TOKEN_ISSUER
+            )
+            token_data = schemas.RefreshTokenPayload(**payload)
+            if datetime.fromtimestamp(token_data.exp) < datetime.utcnow():
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Token expired",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+            user = crud.user.get(db, id=token_data.sub)
+            if not user:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND, detail={"status": False, "message": "User not found"}
+                )
+            else:
+                # Create and return token
+                return {
+                    "access_token": security.create_access_token(
+                        user.id,
+                        user.email,
+                        expires_delta=access_token_expires,
+                    ),
+                    "token_type": "bearer",
+                }
+    except Exception as ex:
+        # Remove the cookie and send error
+        # response.delete_cookie(key="refresh_token", path="/", domain="localhost", httponly=True)
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={"status": False, "message": f"{ex}"}
+        )
+
 
 
 @router.post("/login/test-token", response_model=schemas.UserLoginSchema | Any)
@@ -177,9 +310,9 @@ def test_token(
 # Change password endpoint
 @router.post("/change_password", response_model=Any)
 def change_password(
-    old_password: str = Form(...),
-    new_password: str = Form(...),
-    confirm_password: str = Form(...),
+    old_password: str = Body(...),
+    new_password: str = Body(...),
+    confirm_password: str = Body(...),
     db: Session = Depends(deps.get_db),
     current_user: models.User = Depends(deps.get_current_active_user),
 ) -> Any:

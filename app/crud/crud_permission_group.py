@@ -1,7 +1,7 @@
 from typing import Any, Dict, Optional, Union
 
 from fastapi.encoders import jsonable_encoder
-from sqlalchemy import exc, literal, null
+from sqlalchemy import exc, literal, null, and_
 from sqlalchemy.orm import Session, defer, raiseload
 
 from app.crud.base import CRUDBase
@@ -54,53 +54,72 @@ class CRUDPermissionGroup(
         return (
             db.query(PermissionGroup)
             .filter(PermissionGroup.permission_group_id == null())
+            .order_by(PermissionGroup.order)
             .all()
+        )
+
+    def get_group_by_id(self, db: Session, *, group_id: int):
+        return (
+            db.query(PermissionGroup)
+            .filter(PermissionGroup.id == group_id)
+            .first()
         )
 
     # Return single permissionGroup respected to it's name
     def get_by_permission_group_name(
-        self, db: Session, *, name: str
+            self, db: Session, *, name: str, permission_group_id: int
     ) -> Optional[PermissionGroup]:
         permission_group = (
-            db.query(PermissionGroup).filter(PermissionGroup.name == name).first()
+            db.query(PermissionGroup)
+            .filter(PermissionGroup.name == name, and_(PermissionGroup.permission_group_id == permission_group_id))
+            .first()
         )
         return permission_group
 
     # Create permission_group based on the request
     def create(
-        self, db: Session, *, obj_in: PermissionGroupCreate, user_id: int
+            self, db: Session, *, obj_in: PermissionGroupCreate, user_id: int
     ) -> PermissionGroup:
         if obj_in.permission_group_id == 0:
             permission_groupId = None
+            result = db.query(PermissionGroup).filter(PermissionGroup.permission_group_id == None).order_by(
+                PermissionGroup.id.desc()).first()
+            result = result.order + 1
         else:
             permission_groupId = obj_in.permission_group_id
+            result = db.query(PermissionGroup).filter(
+                PermissionGroup.permission_group_id == permission_groupId).order_by(
+                PermissionGroup.id.desc()).first()
+            if (result == None):
+                result = 0
+            else:
+                result = result.order + 1
         db_obj = PermissionGroup(
-            name=obj_in.name, permission_group_id=permission_groupId, insertedBy=user_id
+            name=obj_in.name, permission_group_id=permission_groupId, insertedBy=user_id, order=result
         )
         db.add(db_obj)
         try:
             db.commit()
             return True
         except exc.SQLAlchemyError:
+            db.rollback()
             return False
 
     def update(
-        self,
-        db: Session,
-        *,
-        db_obj: PermissionGroupUpdate,
-        obj_in: Union[PermissionGroupUpdate, Dict[str, Any]]
+            self,
+            db: Session,
+            *,
+            db_obj: PermissionGroupUpdate,
+            obj_in: Union[PermissionGroupUpdate, Dict[str, Any]]
     ) -> PermissionGroup:
         obj_data = jsonable_encoder(db_obj)
         if isinstance(obj_in, dict):
             update_data = obj_in
         else:
             update_data = obj_in.dict(exclude_unset=True)
+        update_data.pop('permission_group_id')
         update_data["name"] = update_data["name"]
 
-        if "permission_group_id" in update_data:
-            update_data["permission_group_id"] = update_data["permission_group_id"]["value"]
-  
         for field in obj_data:
             if field in update_data:
                 setattr(db_obj, field, update_data[field])
@@ -108,7 +127,8 @@ class CRUDPermissionGroup(
         try:
             db.commit()
             return True
-        except exc.SQLAlchemyError:
+        except exc.SQLAlchemyError as ex:
+            print(ex)
             db.rollback()
             return False
 

@@ -17,4 +17,5 @@ class PermissionGroup(Base):
     insertedBy = Column(Integer, nullable=True, index=True)
     insertedDate = Column(String(250), default=datetime.utcnow())
     groups = relationship("PermissionGroup", lazy="joined", join_depth=10)
+    order = Column(Integer, default=0)
     permissions = relationship("Permission", lazy="joined")

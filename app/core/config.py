@@ -17,6 +17,10 @@ class Settings(BaseSettings):
 
     # 60 minutes * 24 hours * 1 day = 1 day
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * int(os.getenv('ACCESS_TOKEN_EXPIRE_DAYS'))
+    REFRESH_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * int(os.getenv('REFRESH_TOKEN_EXPIRE_DAYS'))
+
+    JWT_REFRESH_SECRET_KEY: str = os.getenv('JWT_REFRESH_SECRET_KEY')
+
     # The audience of a token is the intended recipient of the token
     TOKEN_AUDIENCE: str = os.getenv('TOKEN_AUDIENCE')
     # Identifies the issuer, or "authorization server" that constructs and

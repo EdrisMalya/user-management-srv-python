@@ -14,7 +14,7 @@ class PermissionGroupCreate(PermissionGroupBase):
 
 class PermissionGroupUpdate(PermissionGroupBase):
     name: str = Field(..., min_length=1)
-    permission_group_id: Dict[str, Any] = Field(None)
+    permission_group_id: Optional[int] = Field(None)
 
 
 class PermissionGroupInDBBase(PermissionGroupBase):

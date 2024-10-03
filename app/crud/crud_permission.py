@@ -4,6 +4,7 @@ from sqlalchemy import delete, exc
 from sqlalchemy.orm import Session
 
 from app.crud.base import CRUDBase
+from app.models import PermissionGroup
 from app.models.permission import Permission
 from app.models.role_permission import RolePermission
 from app.schemas.permission import PermissionCreate, PermissionUpdate
@@ -72,6 +73,13 @@ class CRUDPermission(CRUDBase[Permission, PermissionCreate, PermissionUpdate]):
                 return False
         else:
             return False
+
+    def get_group_by_id(self, db: Session, *, group_id: int):
+        return (
+            db.query(PermissionGroup)
+            .filter(PermissionGroup.id == group_id)
+            .first()
+        )
 
 
 permission = CRUDPermission(Permission)

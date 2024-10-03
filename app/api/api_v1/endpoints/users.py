@@ -90,7 +90,7 @@ async def create_user(
         random_password = generate_random_password()
         roles = []
         for r in role_id:
-            roles.append(r["value"])
+            roles.append(r["id"])
 
         # 3. Create the UserCreate Schema
         user_in = schemas.UserCreate(
